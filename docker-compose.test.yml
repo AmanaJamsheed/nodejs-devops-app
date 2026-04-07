@@ -1,0 +1,41 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Environment Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.test.yml up
+#        --abort-on-container-exit --exit-code-from app
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder   # Use builder stage (has devDependencies for Jest)
+    image: amanajamsheed/nodejs-devops-app:test
+    container_name: nodejs-app-test
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      MONGO_URI: mongodb://mongo:27017/devopsdb_test
+    command: ["npm", "test"]
+    volumes:
+      # Mount source code and tests for test run
+      - ./src:/app/src
+      - ./tests:/app/tests
+      # Mount coverage output
+      - ./coverage:/app/coverage
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    container_name: mongodb-test
+    environment:
+      MONGO_INITDB_DATABASE: devopsdb_test
+    volumes:
+      - mongo_test_data:/data/db
+
+volumes:
+  mongo_test_data:
+    name: devops_mongo_test_data
